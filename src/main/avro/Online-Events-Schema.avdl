@@ -1,0 +1,14 @@
+@namespace("io.confluent.model.avro")
+protocol OnlineEvents {
+
+  record PracticalEventDetails {
+    string eventCode;
+    string customerId;
+    string userId;
+  }
+
+  record PracticalOnlineEvent {
+    string source;
+    PracticalEventDetails eventDetails;
+  }
+}
