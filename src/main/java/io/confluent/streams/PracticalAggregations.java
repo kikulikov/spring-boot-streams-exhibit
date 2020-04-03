@@ -20,7 +20,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
-import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,11 +46,24 @@ public class PracticalAggregations {
   @Bean
   public KStream<String, PracticalOnlineEvent> handleStream(StreamsBuilder builder) {
 
-    final KStream<String, PracticalOnlineEvent> inputStream = builder.stream(inputTopicName);
-    final KStream<String, PracticalOnlineEvent> keyedStream = inputStream
-        .selectKey((a, b) -> b.getEventDetails().getUserId().toString());
+    final KStream<String, PracticalOnlineEvent> inputStream = inputStream(builder);
+    final KStream<String, PracticalOnlineEvent> keyedStream = keyedStream(inputStream);
 
-    final KTable<String, String> userCustomerTable = keyedStream // TODO inputStream
+    return onlineEventsStream(keyedStream, keyedStream);
+  }
+
+  static KStream<String, PracticalOnlineEvent> inputStream(StreamsBuilder builder) {
+    return builder.stream(inputTopicName);
+  }
+
+  static KStream<String, PracticalOnlineEvent> keyedStream(KStream<String, PracticalOnlineEvent> inputStream) {
+    return inputStream.selectKey((a, b) -> b.getEventDetails().getUserId().toString());
+  }
+
+  static KStream<String, PracticalOnlineEvent> onlineEventsStream(KStream<String, PracticalOnlineEvent> tableSource,
+                                                                  KStream<String, PracticalOnlineEvent> streamSource) {
+
+    final KTable<String, String> userCustomerTable = tableSource
         .filterNot((a, b) -> StringUtils.isBlank(b.getEventDetails().getCustomerId()))
         .groupBy((k, v) -> v.getEventDetails().getUserId().toString())
         .reduce((aggValue, newValue) -> newValue)
@@ -59,7 +71,7 @@ public class PracticalAggregations {
 
     userCustomerTable.toStream().print(Printed.toSysOut());
 
-    final KStream<String, PracticalOnlineEvent> joinedResult = keyedStream.join(userCustomerTable, (practicalOnlineEvent, customerId) -> {
+    final KStream<String, PracticalOnlineEvent> joinedResult = streamSource.join(userCustomerTable, (practicalOnlineEvent, customerId) -> {
       final PracticalEventDetails eventDetails = practicalOnlineEvent.getEventDetails();
       eventDetails.setCustomerId(customerId);
       practicalOnlineEvent.setEventDetails(eventDetails);
@@ -74,6 +86,7 @@ public class PracticalAggregations {
 
     return joinedResult;
   }
+
 
 //  @Bean
 //  public StreamsBuilder streamsBuilder() {

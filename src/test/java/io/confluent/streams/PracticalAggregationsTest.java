@@ -127,6 +127,10 @@ class PracticalAggregationsTest {
     final Topology topology = builder.build();
     final Properties props = topologyConfiguration();
 
+//    topology.addStateStore(Stores.keyValueStoreBuilder(
+//        Stores.inMemoryKeyValueStore("aggregationsTestStore"),
+//        Serdes.String(), Serdes.Long()).withLoggingDisabled(), "practical-test");
+
     this.testDriver = new TopologyTestDriver(topology, props);
 
     final Serde<String> stringSerde = Serdes.String();
