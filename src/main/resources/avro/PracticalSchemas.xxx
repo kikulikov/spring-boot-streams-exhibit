@@ -1,5 +1,5 @@
 @namespace("io.confluent.model.avro")
-protocol OnlineEvents {
+protocol PracticalSchemas {
 
   record PracticalEventDetails {
     string eventCode;

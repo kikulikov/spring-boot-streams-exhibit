@@ -1,0 +1,44 @@
+[
+  {
+    "type": "record",
+    "name": "PracticalEventDetails",
+    "namespace": "io.confluent.model.avro",
+    "fields": [
+      {
+        "name": "eventCode",
+        "type": "string"
+      },
+      {
+        "name": "customerId",
+        "type": "string"
+      },
+      {
+        "name": "userId",
+        "type": "string"
+      },
+      {
+        "name": "timestamp",
+        "type": {
+          "type": "long",
+          "connect.name": "org.apache.kafka.connect.data.Timestamp"
+        },
+        "doc": "Timestamp in millis since epoch UTC"
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "PracticalOnlineEvent",
+    "namespace": "io.confluent.model.avro",
+    "fields": [
+      {
+        "name": "source",
+        "type": "string"
+      },
+      {
+        "name": "eventDetails",
+        "type": "io.confluent.model.avro.PracticalEventDetails"
+      }
+    ]
+  }
+]

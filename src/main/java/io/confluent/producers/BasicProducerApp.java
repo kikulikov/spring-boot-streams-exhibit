@@ -1,7 +1,7 @@
 package io.confluent.producers;
 
 import io.confluent.data.EventSource;
-import io.confluent.data.PracticalOnlineEvent;
+import io.confluent.model.avro.PracticalOnlineEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +36,7 @@ public class BasicProducerApp {
   @SuppressWarnings("unused")
   public void produce() {
     final PracticalOnlineEvent event = eventSource.retrieveEvent();
+
     logger.info("Sending='{}'", event);
     kafkaTemplate.send(topicName, event);
   }

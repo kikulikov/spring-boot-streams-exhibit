@@ -1,5 +1,6 @@
 package io.confluent.consumers;
 
+import org.apache.avro.generic.GenericRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -18,7 +19,7 @@ public class BasicConsumerApp {
 
   @KafkaListener(topics = topicName)
   @SuppressWarnings("unused")
-  public void receive(String payload) {
-    logger.info("Received='{}'", payload);
+  public void receive(GenericRecord record) {
+    logger.info("Received='{}'", record.toString());
   }
 }

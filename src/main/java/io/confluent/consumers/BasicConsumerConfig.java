@@ -1,5 +1,7 @@
 package io.confluent.consumers;
 
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
@@ -19,38 +21,40 @@ import java.util.Map;
 @Configuration
 public class BasicConsumerConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(BasicConsumerConfig.class);
-    private static final String bootstrapServers = "localhost:9092";
-    private static final String groupId = "basic-kafka-consumer";
-    private static final String offsetReset = "latest";
+  private static final Logger logger = LoggerFactory.getLogger(BasicConsumerConfig.class);
+  private static final String bootstrapServers = "localhost:9092";
+  private static final String schemaRegistryURL = "http://localhost:8081";
+  private static final String groupId = "basic-kafka-consumer";
+  private static final String offsetReset = "latest";
 
-    @Autowired
-    @SuppressWarnings("unused")
-    private KafkaProperties kafkaProperties;
+  @Autowired
+  @SuppressWarnings("unused")
+  private KafkaProperties kafkaProperties;
 
-    @Bean
-    @SuppressWarnings("unused")
-    public ConsumerFactory<Object, Object> consumerFactory() {
-        logger.info("Starting the Kafka Consumer Factory...");
-        return new DefaultKafkaConsumerFactory<>(consumerConfig());
-    }
+  @Bean
+  @SuppressWarnings("unused")
+  public ConsumerFactory<Object, Object> consumerFactory() {
+    logger.info("Starting the Kafka Consumer Factory...");
+    return new DefaultKafkaConsumerFactory<>(consumerConfig());
+  }
 
-    public Map<String, Object> consumerConfig() {
-        final Map<String, Object> props = new HashMap<>(kafkaProperties.buildConsumerProperties());
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class); // TODO AVRO Serializing
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offsetReset);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        return props;
-    }
+  public Map<String, Object> consumerConfig() {
+    final Map<String, Object> props = new HashMap<>(kafkaProperties.buildConsumerProperties());
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
+    props.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryURL);
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offsetReset);
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    return props;
+  }
 
-    //@Bean
-    //@SuppressWarnings("unused")
-    //public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, String>> kafkaListenerContainerFactory() {
-    //    final ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
-    //    factory.setConsumerFactory(consumerFactory());
-    //    factory.setConcurrency(4); // TODO Concurrent consumption
-    //    return factory;
-    //}
+  //@Bean
+  //@SuppressWarnings("unused")
+  //public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, String>> kafkaListenerContainerFactory() {
+  //    final ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+  //    factory.setConsumerFactory(consumerFactory());
+  //    factory.setConcurrency(4); // TODO Concurrent consumption
+  //    return factory;
+  //}
 }
