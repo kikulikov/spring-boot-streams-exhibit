@@ -33,7 +33,7 @@ public class BasicConsumerConfig {
 
   @Bean
   @SuppressWarnings("unused")
-  public ConsumerFactory<Object, Object> consumerFactory() {
+  public ConsumerFactory<?, ?> consumerFactory() {
     logger.info("Starting the Kafka Consumer Factory...");
     return new DefaultKafkaConsumerFactory<>(consumerConfig());
   }

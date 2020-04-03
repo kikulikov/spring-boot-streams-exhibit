@@ -21,8 +21,8 @@ import static org.junit.Assert.assertThat;
 @SpringBootTest
 class PracticalAggregationsTest {
 
-  private static final String inputTopicName = "inputTopic";
-  private static final String outputTopicName = "outputTopic";
+  private static final String inputTopicName = PracticalAggregations.inputTopicName;
+  private static final String outputTopicName = PracticalAggregations.outputTopicName;
 
   private static final String schemaRegistryScope = PracticalAggregationsTest.class.getName();
   private static final String mockSchemaRegistryURL = "mock://" + schemaRegistryScope;
@@ -31,8 +31,96 @@ class PracticalAggregationsTest {
   private TestInputTopic<String, PracticalOnlineEvent> inputTopic;
   private TestOutputTopic<String, PracticalOnlineEvent> outputTopic;
 
+  @Test
+  public void shouldHandleSingleMessage() {
+
+    final List<PracticalOnlineEvent> inputValues = new ArrayList<>();
+    inputValues.add(new PracticalOnlineEvent("google.com",
+        new PracticalEventDetails("test", "customer-1", "user-1", 300L)));
+
+    final Map<String, PracticalOnlineEvent> expectedOutput = new HashMap<>();
+    expectedOutput.put("user-1", new PracticalOnlineEvent("google.com",
+        new PracticalEventDetails("test", "customer-1", "user-1", 300L)));
+
+    this.inputTopic.pipeValueList(inputValues);
+    assertThat(this.outputTopic.readKeyValuesToMap(), equalTo(expectedOutput));
+  }
+
+  @Test
+  public void shouldAggregateSimilarMessages() {
+
+    final List<PracticalOnlineEvent> inputValues = new ArrayList<>();
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1", "customer-1", "user-1", 1L)));
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-2", "", "user-1", 1L)));
+
+    final List<KeyValue<String, PracticalOnlineEvent>> expectedOutput = new ArrayList<>();
+    expectedOutput.add(KeyValue.pair("user-1", new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1", "customer-1", "user-1", 1L))));
+    expectedOutput.add(KeyValue.pair("user-1", new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-2", "customer-1", "user-1", 1L))));
+
+    this.inputTopic.pipeValueList(inputValues);
+    assertThat(this.outputTopic.readKeyValuesToList(), equalTo(expectedOutput));
+  }
+
+  @Test
+  public void shouldNotAggregateWhenOrderingWrong() {
+
+    final List<PracticalOnlineEvent> inputValues = new ArrayList<>();
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-2", "", "user-1", 1L)));
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1", "customer-1", "user-1", 1L)));
+
+    final List<KeyValue<String, PracticalOnlineEvent>> expectedOutput = new ArrayList<>();
+    expectedOutput.add(KeyValue.pair("user-1", new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1", "customer-1", "user-1", 1L))));
+
+    this.inputTopic.pipeValueList(inputValues);
+    assertThat(this.outputTopic.readKeyValuesToList(), equalTo(expectedOutput));
+  }
+
+  @Test
+  public void shouldAggregateMultipleMessages() {
+
+    final List<PracticalOnlineEvent> inputValues = new ArrayList<>();
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1-1", "", "user-1", 1L)));
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-2-1", "", "user-2", 1L)));
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1-2", "customer-1", "user-1", 1L)));
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-2-2", "", "user-2", 1L)));
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-2-3", "customer-2", "user-2", 1L)));
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1-3", "", "user-1", 1L)));
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1-4", "", "user-1", 1L)));
+    inputValues.add(new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-2-4", "", "user-2", 1L)));
+
+    final List<KeyValue<String, PracticalOnlineEvent>> expectedOutput = new ArrayList<>();
+    expectedOutput.add(KeyValue.pair("user-1", new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1-2", "customer-1", "user-1", 1L))));
+    expectedOutput.add(KeyValue.pair("user-2", new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-2-3", "customer-2", "user-2", 1L))));
+    expectedOutput.add(KeyValue.pair("user-1", new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1-3", "customer-1", "user-1", 1L))));
+    expectedOutput.add(KeyValue.pair("user-1", new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-1-4", "customer-1", "user-1", 1L))));
+    expectedOutput.add(KeyValue.pair("user-2", new PracticalOnlineEvent("io.confluent",
+        new PracticalEventDetails("test-2-4", "customer-2", "user-2", 1L))));
+
+    this.inputTopic.pipeValueList(inputValues);
+    assertThat(this.outputTopic.readKeyValuesToList(), equalTo(expectedOutput));
+  }
+
   @BeforeEach
-  void beforeEach() throws Exception {
+  void beforeEach() {
     final StreamsBuilder builder = new StreamsBuilder();
     new PracticalAggregations().handleStream(builder); // streams builder injection
 
@@ -55,43 +143,9 @@ class PracticalAggregationsTest {
         .createOutputTopic(outputTopicName, stringSerde.deserializer(), onlineEventSerde.deserializer());
   }
 
-  @Test
-  public void shouldProcess() {
-
-    final StreamsBuilder builder = PracticalAggregations.topology();
-    final Properties config = topologyConfiguration();
-
-    final List<PracticalOnlineEvent> inputValues = new ArrayList<>();
-    inputValues.add(new PracticalOnlineEvent("google.com",
-        new PracticalEventDetails("test", "customer-1", "user-1", 300L)));
-
-    final Map<String, PracticalOnlineEvent> expectedOutput = new HashMap<>();
-    expectedOutput.put("user-1", new PracticalOnlineEvent("google.com",
-        new PracticalEventDetails("test", "customer-1", "user-1", 300L)));
-
-    final Serde<String> stringSerde = Serdes.String();
-    final Serde<PracticalOnlineEvent> onlineEventSerde = new SpecificAvroSerde<>();
-
-    final Map<String, String> schemaConfig = Map.of(
-        AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, mockSchemaRegistryURL);
-    onlineEventSerde.configure(schemaConfig, false);
-
-    try (final TopologyTestDriver testDriver = new TopologyTestDriver(builder.build(), config)) {
-
-      final TestInputTopic<String, PracticalOnlineEvent> input = testDriver
-          .createInputTopic(inputTopicName, stringSerde.serializer(), onlineEventSerde.serializer());
-
-      final TestOutputTopic<String, PracticalOnlineEvent> output = testDriver
-          .createOutputTopic(outputTopicName, stringSerde.deserializer(), onlineEventSerde.deserializer());
-
-      input.pipeValueList(inputValues);
-
-      assertThat(output.readKeyValuesToMap(), equalTo(expectedOutput));
-    }
-  }
-
   @AfterEach
   void afterEach() {
+    testDriver.close();
     MockSchemaRegistry.dropScope(schemaRegistryScope);
   }
 

@@ -20,6 +20,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
+import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,9 +31,10 @@ import java.util.Properties;
 public class PracticalAggregations {
 
   private static final Logger logger = LoggerFactory.getLogger(PracticalAggregations.class);
-  private static final String inputTopicName = "online-events";
-  private static final String outputTopicName = "online-events-result";
   private static final String schemaRegistryURL = "http://localhost:8081";
+
+  public static final String inputTopicName = "online-events";
+  public static final String outputTopicName = "online-events-result";
 
   @Autowired
   @SuppressWarnings("unused")
@@ -49,7 +51,7 @@ public class PracticalAggregations {
     final KStream<String, PracticalOnlineEvent> keyedStream = inputStream
         .selectKey((a, b) -> b.getEventDetails().getUserId().toString());
 
-    final KTable<String, String> userCustomerTable = keyedStream
+    final KTable<String, String> userCustomerTable = keyedStream // TODO inputStream
         .filterNot((a, b) -> StringUtils.isBlank(b.getEventDetails().getCustomerId()))
         .groupBy((k, v) -> v.getEventDetails().getUserId().toString())
         .reduce((aggValue, newValue) -> newValue)
@@ -72,6 +74,16 @@ public class PracticalAggregations {
 
     return joinedResult;
   }
+
+//  @Bean
+//  public StreamsBuilder streamsBuilder() {
+//    return new StreamsBuilder().;
+//  }
+//
+//  @Bean
+//  public StreamsConfig streamsConfigs() {
+//    return new StreamsConfig(streamsConfig());
+//  }
 
 //  @Bean
 //  @SuppressWarnings("unused")
@@ -129,6 +141,7 @@ public class PracticalAggregations {
 //    return builder;
 //  }
 
+  // TODO unused... How to inject these???
   private Properties streamsConfig() {
     final Map<String, Object> props = new HashMap<>(kafkaProperties.buildStreamsProperties());
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, "practical-aggregations");

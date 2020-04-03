@@ -30,12 +30,12 @@ public class BasicProducerConfig {
 
   @Bean
   @SuppressWarnings("unused")
-  public KafkaTemplate<String, Object> kafkaTemplate() {
+  public KafkaTemplate<?, ?> kafkaTemplate() {
     return new KafkaTemplate<>(producerFactory());
   }
 
   @Bean
-  public ProducerFactory<String, Object> producerFactory() {
+  public ProducerFactory<?, ?> producerFactory() {
     logger.info("Starting the Kafka Producer Factory...");
     return new DefaultKafkaProducerFactory<>(producerConfig());
   }
