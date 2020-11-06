@@ -21,8 +21,8 @@ import java.util.Map;
 public class BasicProducerConfig {
 
   private static final Logger logger = LoggerFactory.getLogger(BasicProducerConfig.class);
-  private static final String bootstrapServers = "localhost:9092";
-  private static final String schemaRegistryURL = "http://localhost:8081";
+  private static final String bootstrapServers = "ec2-18-133-140-153.eu-west-2.compute.amazonaws.com:9092";
+  private static final String schemaRegistryURL = "http://ec2-18-133-140-8.eu-west-2.compute.amazonaws.com:8081";
 
   @Autowired
   @SuppressWarnings("unused")

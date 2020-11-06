@@ -51,7 +51,11 @@ class SimplifiedAggregationsTest {
 
   private StreamsBuilder createTopology() {
     final StreamsBuilder builder = new StreamsBuilder();
+    updateTopology(builder);
+    return builder;
+  }
 
+  private void updateTopology(StreamsBuilder builder) {
     final KStream<String, String> inputStream = builder.stream(inputTopic);
     final KStream<String, String> keyedStream = inputStream.selectKey((a, b) -> b);
     final KTable<String, Integer> pinnedTable = keyedStream.groupBy((k, v) -> v).reduce((z, in) -> in).mapValues(String::length);
@@ -59,8 +63,6 @@ class SimplifiedAggregationsTest {
 
     result.print(Printed.toSysOut());
     result.to(outputTopic, Produced.with(Serdes.String(), Serdes.String()));
-
-    return builder;
   }
 
   private Properties createTopologyConfiguration() {
